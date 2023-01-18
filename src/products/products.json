@@ -1,0 +1,24 @@
+[
+  {
+    "id": 2,
+    "title": "Batman",
+    "description": "de Christopher Nolan",
+    "code": "6574",
+    "price": "1500",
+    "status": "true",
+    "stock": "6",
+    "category": "Accion",
+    "thumbnails": ""
+  },
+  {
+    "id": 3,
+    "title": "Tenet",
+    "description": "de Christopher Nolan",
+    "code": "6234",
+    "price": "1500",
+    "status": "true",
+    "stock": "6",
+    "category": "Accion",
+    "thumbnails": ""
+  }
+]

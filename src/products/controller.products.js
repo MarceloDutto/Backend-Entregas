@@ -1,9 +1,13 @@
 import { Router } from 'express';
 import fs, { existsSync, promises, writeFile } from 'fs';
+import { v4 as uuidv4 } from 'uuid';
+import __dirname, { uploader } from '../utils.js';
 
 const router = Router();
-const path = './products/products.json';
+const path = __dirname + '/products/products.json';
 let allProducts = [];
+let id;
+let uniqueId = false;
 
 
 router.get('/', async (req, res) => {
@@ -25,24 +29,29 @@ router.get('/:pid', async (req, res) => {
     allProducts = JSON.parse(data);
 
     const { pid } = req.params;
-    const productById = allProducts.find(prod => prod.id === parseInt(pid));
+    const productById = allProducts.find(prod => prod.id === pid);
     if(!productById) return res.json({error: "Producto no encontrado"});
     res.json(productById);
 });
 
-router.post('/', async (req, res) => {
-    const { title, description, code, price, status=true, stock, category, thumbnails } = req.body;
+router.post('/', uploader.single('file'), async (req, res) => {
+    const { title, description, code, price, status=true, stock, category, thumbnails=[] } = req.body;
     if(!title || !description || !code || !price || !status || !stock || !category) return res.json({message: 'Ingrese los campos obligatorios'});
 
     !existsSync(path) ? allProducts = [] : allProducts = JSON.parse(await promises.readFile(path, 'utf-8'));
     
     if(allProducts.find(prod => prod.code === code)) return res.json({message: 'El producto ya se encuentra ingresado'});
 
-    const IdArray = allProducts.map(prod => prod.id);
-    const maxId = Math.max(...IdArray);
+    while (uniqueId === false) {
+        id = uuidv4();
+        uniqueId = allProducts.forEach(prod => prod.id === id) ? false : true;
+    }
+        
+    const imgPath = req.file.path;
+    thumbnails.push(imgPath);
 
     const product = {
-        id: maxId === -Infinity ? 1 : maxId + 1,
+        id,
         title,
         description,
         code,
@@ -53,6 +62,8 @@ router.post('/', async (req, res) => {
         thumbnails
     }
 
+    uniqueId = false;
+    
     allProducts.push(product);
     const productStr = JSON.stringify(allProducts, null, 2);
     writeFile(path, productStr, error => {
@@ -70,7 +81,7 @@ router.put('/:pid', async (req, res) => {
 
     const { pid } = req.params;
 
-    const selectedProduct = allProducts.find(prod => prod.id === parseInt(pid));
+    const selectedProduct = allProducts.find(prod => prod.id === pid);
     if(selectedProduct === undefined) return res.json({message: 'El producto no fue encontrado'});
 
     const { title, description, code, price, status, stock, category, thumbnails } = req.body; 
@@ -105,7 +116,7 @@ router.delete('/:pid', async (req, res) => {
     allProducts = JSON.parse(data);
 
     const { pid } = req.params;
-    const indexById = allProducts.findIndex(prod => prod.id === parseInt(pid));
+    const indexById = allProducts.findIndex(prod => prod.id === pid);
     if(indexById === -1) return res.json({mesagge: 'No se encontró el producto'});
     allProducts.splice(indexById, 1);
 

@@ -1,0 +1,28 @@
+[
+  {
+    "id": "923556ba-968b-455a-b8b1-bca0a66e0f56",
+    "title": "Interstellar",
+    "description": "de Christopher Nolan",
+    "code": "45343",
+    "price": "1300",
+    "status": "true",
+    "stock": "7",
+    "category": "Accion",
+    "thumbnails": [
+      ""
+    ]
+  },
+  {
+    "id": "84852a3f-fada-4ffb-8b34-76ea8c942701",
+    "title": "Batman",
+    "description": "de Christopher Nolan",
+    "code": "12334",
+    "price": "1300",
+    "status": "true",
+    "stock": "7",
+    "category": "Accion",
+    "thumbnails": [
+      ""
+    ]
+  }
+]

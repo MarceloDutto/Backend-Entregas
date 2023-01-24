@@ -7,27 +7,43 @@ const router = Router();
 const path = __dirname + '/carts/carts.json';
 const productsPath = __dirname + '/products/products.json';
 let allCarts = [];
-let id;
-let uniqueId = false;
 
 router.get('/:cid', async (req, res) => {
-    if(!existsSync(path)) return res.json({message: 'No existe la base de datos'});
+    if(!existsSync(path)) return res.status(404).json({message: 'No se encontró la base de datos'});
 
-    const data = await promises.readFile(path, 'utf-8');
-    allCarts = JSON.parse(data);
-
+    try {
+        const data = await promises.readFile(path, 'utf-8');
+        allCarts = JSON.parse(data);
+    } catch {
+        console.log(error);
+        return res.status(404).json({message: 'Error al acceder a la base de datos'})
+    }
+    
     const { cid } = req.params;
 
     const selectedCart = allCarts.find(cart => cart.id === cid);
-    if(!selectedCart) return res.json({message: 'No existe el carrito'});
+    if(!selectedCart) return res.status(404).json({message: 'No se encontró el carrito'});
     const productsInCart = selectedCart.products;
     
     res.json({productsInCart});
 })
 
 router.post('/', async (req, res) => {
-    !existsSync(path) ? allCarts = [] : allCarts = JSON.parse(await promises.readFile(path, 'utf-8'));
 
+    if(!existsSync(path)) {
+        allCarts = []
+    } else {
+        try {
+            const data = await promises.readFile(path, 'utf-8');
+            allCarts = JSON.parse(data);
+        } catch {
+            console.log(error);
+            return res.status(404).json({message: 'Error al acceder a la base de datos'})
+        }
+    }
+
+    let id;
+    let uniqueId = false;
     while (uniqueId === false) {
         id = uuidv4();
         uniqueId = allCarts.forEach(prod => prod.id === id) ? false : true;
@@ -40,8 +56,6 @@ router.post('/', async (req, res) => {
 
     allCarts.push(cart);
 
-    uniqueId = false;
-
     const cartStr = JSON.stringify(allCarts, null, 2);
     writeFile(path, cartStr, error => {
         if(error) throw error;
@@ -51,19 +65,37 @@ router.post('/', async (req, res) => {
 })
 
 router.post('/:cid/product/:pid', async (req, res) => {
-    !existsSync(path) ? allCarts = [] : allCarts = JSON.parse(await promises.readFile(path, 'utf-8'));
+    const products = [];
+
+    if(!existsSync(path)) {
+        allCarts = []
+    } else {
+        try {
+            const data = await promises.readFile(path, 'utf-8');
+            allCarts = JSON.parse(data);
+        } catch {
+            console.log(error);
+            return res.status(404).json({message: 'Error al acceder a la base de datos'})
+        }
+    }
 
     const { cid, pid } = req.params;
 
     const cartIndex = allCarts.findIndex(cart => cart.id === cid);
-    if(cartIndex === -1) return res.json({message: 'No se encontro el carrito seleccionado'});
+    if(cartIndex === -1) return res.status(404).json({message: 'No se encontro el carrito seleccionado'});
 
-    if(!existsSync(productsPath)) return res.json({message: 'No se encontro la base de datos de productos'});
+    if(!existsSync(productsPath)) return res.status(404).json({message: 'No se encontro la base de datos de productos'});
 
-    const data = await promises.readFile(productsPath, 'utf-8');
-    const products = JSON.parse(data);
+    try {
+        const data = await promises.readFile(productsPath, 'utf-8');
+        products = JSON.parse(data);
+    } catch {
+        console.log(error);
+        return res.status(404).json({message: 'No se pudo acceder a los productos'})
+    }
+    
     const selectedProduct = products.find(prod => prod.id === pid);
-    if(!selectedProduct) return res.json({message: 'No se encontro el producto seleccionado'});
+    if(!selectedProduct) return res.status(404).json({message: 'No se encontro el producto seleccionado'});
 
     const itemIndex = allCarts[cartIndex].products.findIndex(item => item.id === selectedProduct.id)
 

@@ -6,16 +6,18 @@ import __dirname, { uploader } from '../utils.js';
 const router = Router();
 const path = __dirname + '/products/products.json';
 let allProducts = [];
-let id;
-let uniqueId = false;
-
 
 router.get('/', async (req, res) => {
-    if(!existsSync(path)) return res.json({message: 'No existe la base de datos'});
+    if(!existsSync(path)) return res.status(404).json({message: 'No existe la base de datos'});
 
-    const data = await promises.readFile(path, 'utf-8');
-    allProducts = JSON.parse(data);
-
+    try {
+        const data = await promises.readFile(path, 'utf-8');
+        allProducts = JSON.parse(data);
+    } catch (error) {
+        console.log(error);
+        return res.status(404).json({message: 'Error al acceder a la base de datos'})
+    }
+    
     const { limit } = req.query;
     if(!limit) return res.json(allProducts);
     const limitedProducts = allProducts.slice(0, limit);
@@ -23,31 +25,48 @@ router.get('/', async (req, res) => {
 });
 
 router.get('/:pid', async (req, res) => {
-    if(!existsSync(path)) return res.json({message: 'No existe la base de datos'});
+    if(!existsSync(path)) return res.status(404).json({message: 'No existe la base de datos'});
 
-    const data = await promises.readFile(path, 'utf-8');
-    allProducts = JSON.parse(data);
+    try {
+        const data = await promises.readFile(path, 'utf-8');
+        allProducts = JSON.parse(data);
+    } catch (error) {
+        console.log(error);
+        return res.status(404).json({message: 'Error al acceder a la base de datos'})
+    }
 
     const { pid } = req.params;
     const productById = allProducts.find(prod => prod.id === pid);
-    if(!productById) return res.json({error: "Producto no encontrado"});
+    if(!productById) return res.status(404).json({error: "Producto no encontrado"});
     res.json(productById);
 });
 
 router.post('/', uploader.single('file'), async (req, res) => {
     const { title, description, code, price, status=true, stock, category, thumbnails=[] } = req.body;
-    if(!title || !description || !code || !price || !status || !stock || !category) return res.json({message: 'Ingrese los campos obligatorios'});
+    if(!title || !description || !code || !price || typeof(status) !== 'boolean' || !stock || !category) return res.status(400).json({message: 'Error en el ingreso de los campos'});
 
-    !existsSync(path) ? allProducts = [] : allProducts = JSON.parse(await promises.readFile(path, 'utf-8'));
+    if(!existsSync(path)) {
+        allProducts = []
+    } else {
+        try {
+            const data = await promises.readFile(path, 'utf-8');
+            allProducts = JSON.parse(data);
+        } catch (error) {
+            console.log(error);
+            return res.status(404).json({message: 'Error al acceder a la base de datos'})
+        }
+    }
     
-    if(allProducts.find(prod => prod.code === code)) return res.json({message: 'El producto ya se encuentra ingresado'});
-
+    if(allProducts.find(prod => prod.code === code)) return res.status(400).json({message: 'El producto ya se encuentra ingresado'});
+    
+    let id;
+    let uniqueId = false;
     while (uniqueId === false) {
         id = uuidv4();
         uniqueId = allProducts.forEach(prod => prod.id === id) ? false : true;
     }
-        
-    const imgPath = req.file.path;
+
+    const imgPath = req.file?.path;
     thumbnails.push(imgPath);
 
     const product = {
@@ -61,8 +80,6 @@ router.post('/', uploader.single('file'), async (req, res) => {
         category,
         thumbnails
     }
-
-    uniqueId = false;
     
     allProducts.push(product);
     const productStr = JSON.stringify(allProducts, null, 2);
@@ -73,16 +90,21 @@ router.post('/', uploader.single('file'), async (req, res) => {
     res.status(201).json({message: 'El producto fue creado exitosamente'}); 
 });
 
-router.put('/:pid', async (req, res) => {
-    if(!existsSync(path)) return res.json({message: 'No existe la base de datos'});
+router.patch('/:pid', async (req, res) => {
+    if(!existsSync(path)) return res.status(404).json({message: 'No existe la base de datos'});
 
-    const data = await promises.readFile(path, 'utf-8');
-    allProducts = JSON.parse(data);
+    try {
+        const data = await promises.readFile(path, 'utf-8');
+        allProducts = JSON.parse(data);
+    } catch (error) {
+        console.log(error);
+        return res.status(404).json({message: 'Error al acceder a la base de datos'})
+    }
 
     const { pid } = req.params;
 
     const selectedProduct = allProducts.find(prod => prod.id === pid);
-    if(selectedProduct === undefined) return res.json({message: 'El producto no fue encontrado'});
+    if(selectedProduct === undefined) return res.status(404).json({message: 'El producto no fue encontrado'});
 
     const { title, description, code, price, status, stock, category, thumbnails } = req.body; 
 
@@ -110,14 +132,19 @@ router.put('/:pid', async (req, res) => {
 });
 
 router.delete('/:pid', async (req, res) => {
-    if(!existsSync(path)) return res.json({message: 'No existe la base de datos'});
+    if(!existsSync(path)) return res.status(404).json({message: 'No existe la base de datos'});
 
-    const data = await promises.readFile(path, 'utf-8');
-    allProducts = JSON.parse(data);
+    try {
+        const data = await promises.readFile(path, 'utf-8');
+        allProducts = JSON.parse(data);
+    } catch (error) {
+        console.log(error);
+        return res.status(404).json({message: 'Error al acceder a la base de datos'})
+    }
 
     const { pid } = req.params;
     const indexById = allProducts.findIndex(prod => prod.id === pid);
-    if(indexById === -1) return res.json({mesagge: 'No se encontró el producto'});
+    if(indexById === -1) return res.status(404).json({mesagge: 'No se encontró el producto'});
     allProducts.splice(indexById, 1);
 
     const productStr = JSON.stringify(allProducts, null, 2);
